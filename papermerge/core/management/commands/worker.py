@@ -218,7 +218,6 @@ class Command(BaseCommand):
         celery_app.autodiscover_tasks()
 
         celery_worker = CeleryWorker(
-            hostname="localhost",
             app=celery_app,
             beat=True,
             quiet=True,
