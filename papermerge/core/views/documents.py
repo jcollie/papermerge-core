@@ -26,7 +26,7 @@ from mglib.shortcuts import extract_img
 
 from papermerge.core.storage import default_storage
 from papermerge.core.lib.hocr import Hocr
-from .decorators import json_response
+from .decorators import json_response, require_PERM
 
 from papermerge.core.models import (
     Folder,
@@ -66,7 +66,8 @@ def document(request, doc_id):
             'number': page_num
         } for page_num in range(1, doc.get_pagecount(version=version) + 1)]
 
-    if not request.is_ajax():
+    # request.is_ajax is repricated since Django 3.1
+    if not (request.headers.get('x-requested-with') == 'XMLHttpRequest'):
         if request.user.has_perm(Access.PERM_READ, doc):
             if not doc.is_latest_version(version):
                 messages.info(
@@ -305,6 +306,7 @@ def rename_node(request, id):
 
 @login_required
 @require_POST
+@require_PERM('core.add_folder')
 def create_folder(request):
     """
     Creates a new folder.
@@ -363,9 +365,14 @@ def create_folder(request):
     try:
         folder.full_clean()
     except ValidationError as e:
+        # create human friednly error message from
+        # dictionary
+        err_msg = " ".join([
+            f"{k}: {' '.join(v)}" for k, v in e.message_dict.items()
+        ])
         return HttpResponseBadRequest(
             json.dumps({
-                'msg': e.message_dict
+                'msg': err_msg
             }),
             content_type="application/json"
         )
@@ -573,7 +580,7 @@ def preview(request, id, step=None, page="1"):
             with open(file_path, "rb") as f:
                 return HttpResponse(f.read(), content_type="image/png")
 
-    return redirect('core:index')
+    return HttpResponseForbidden()
 
 
 @json_response

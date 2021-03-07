@@ -20355,7 +20355,8 @@ class Browse extends backbone__WEBPACK_IMPORTED_MODULE_1__["Model"] {
         base_url,
         tag,
         page,
-        params;
+        params,
+        order_by;
 
     if (parent_id) {
       base_url = `/browse/${parent_id}/`;
@@ -20363,11 +20364,13 @@ class Browse extends backbone__WEBPACK_IMPORTED_MODULE_1__["Model"] {
       base_url = '/browse/';
     }
 
-    page = Object(_utils__WEBPACK_IMPORTED_MODULE_4__["get_url_param"])('page');
+    page = Object(_utils__WEBPACK_IMPORTED_MODULE_4__["get_url_param"])('page') || Object(_utils__WEBPACK_IMPORTED_MODULE_4__["get_hash_param"])('page');
     tag = this.get('tag');
+    order_by = this.get('order_by');
     params = $.param({
       'tag': tag,
-      'page': page
+      'page': page,
+      'order-by': order_by
     });
     base_url = `${base_url}?${params}`;
     return base_url;
@@ -22887,7 +22890,9 @@ __p+='';
  if (num_pages > 1) { 
 __p+='\n  <div class="row">\n    <nav class="col-12">\n      <ul class="pagination pagination-sm justify-content-end">\n        ';
  if (page.has_previous) { 
-__p+='\n          <li class="page-item">\n            <a class="page-link" href="?page='+
+__p+='\n          <li class="page-item">\n            <a class="page-link" href="'+
+((__t=( parent_node ))==null?'':__t)+
+'?page='+
 ((__t=( page.previous_page_number ))==null?'':__t)+
 '" aria-label="Previous">\n            <span aria-hidden="true">&laquo;</span>\n            </a>\n          </li>\n        ';
  } 
@@ -22897,7 +22902,9 @@ __p+='\n          <li class="page-item ';
  if (pages[i] == page_number) { 
 __p+=' active ';
  } 
-__p+='"><a class="page-link" href="?page='+
+__p+='"><a class="page-link" href="'+
+((__t=( parent_node ))==null?'':__t)+
+'?page='+
 ((__t=( pages[i] ))==null?'':__t)+
 '">'+
 ((__t=( pages[i] ))==null?'':__t)+
@@ -22905,7 +22912,9 @@ __p+='"><a class="page-link" href="?page='+
  } 
 __p+='\n        ';
  if (page.has_next) { 
-__p+='\n          <li class="page-item">\n            <a class="page-link" href="?page='+
+__p+='\n          <li class="page-item">\n            <a class="page-link" href="'+
+((__t=( parent_node ))==null?'':__t)+
+'?page='+
 ((__t=( page.next_page_number ))==null?'':__t)+
 '" aria-label="Next">\n              <span aria-hidden="true">&raquo;</span>\n            </a>\n          </li>\n        ';
  } 
@@ -23800,7 +23809,7 @@ class DgTextOverlay {
 /*!*************************!*\
   !*** ./src/js/utils.js ***!
   \*************************/
-/*! exports provided: capitalize, sanitize, human_size, find_by_id, get_parent_id, value, insert, proxy_click, MgRect, get_url_param */
+/*! exports provided: capitalize, sanitize, human_size, find_by_id, get_parent_id, value, insert, proxy_click, MgRect, get_url_param, get_hash_param */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -23815,6 +23824,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "proxy_click", function() { return proxy_click; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "MgRect", function() { return MgRect; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "get_url_param", function() { return get_url_param; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "get_hash_param", function() { return get_hash_param; });
 /* harmony import */ var jquery__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! jquery */ "./node_modules/jquery/dist/jquery.js");
 /* harmony import */ var jquery__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(jquery__WEBPACK_IMPORTED_MODULE_0__);
 
@@ -24055,6 +24065,35 @@ function get_url_param(param) {
 
     if (param_name[0] === param) {
       return param_name[1] === undefined ? true : decodeURIComponent(param_name[1]);
+    }
+  }
+}
+;
+function get_hash_param(param) {
+  /**
+  Used to extract parameters after hash character.
+   For example for window.location:
+     http://dms.domain#30?page=3
+   location.hash will be #30?page=3
+  and get_hash_param('page') will return 3.
+   It is used for pagination of items within a folder.
+  **/
+  var location_hash = window.location.hash,
+      search_str,
+      url_variables,
+      param_name,
+      i;
+
+  if (location_hash && location_hash.split('?').length > 1) {
+    search_str = location_hash.split('?')[1];
+    url_variables = search_str.split('&');
+
+    for (i = 0; i < url_variables.length; i++) {
+      param_name = url_variables[i].split('=');
+
+      if (param_name[0] === param) {
+        return param_name[1] === undefined ? true : decodeURIComponent(param_name[1]);
+      }
     }
   }
 }
@@ -24523,7 +24562,6 @@ class ActionsView extends backbone__WEBPACK_IMPORTED_MODULE_2__["View"] {
   }
 
   new_folder(event) {
-    console.log(`New folder ${event.currentTarget}`);
     let new_folder_view, parent_id;
     parent_id = this.parent_id;
     new_folder_view = new _views_new_folder__WEBPACK_IMPORTED_MODULE_6__["NewFolderView"](parent_id);
@@ -25342,7 +25380,7 @@ class BrowseView extends backbone__WEBPACK_IMPORTED_MODULE_7__["View"] {
     this.browse_grid_view = new BrowseGridView();
     this.dropzone = new _dropzone__WEBPACK_IMPORTED_MODULE_5__["DropzoneView"](this.browse);
     this.listenTo(this.browse, 'change', this.render);
-    this.listenTo(this.display_mode, 'change', this.render);
+    this.listenTo(this.display_mode, 'change', this.refresh);
     this.listenTo(this.browse_list_view, 'change', this.render);
     _models_dispatcher__WEBPACK_IMPORTED_MODULE_9__["mg_dispatcher"].on(_models_dispatcher__WEBPACK_IMPORTED_MODULE_9__["BROWSER_REFRESH"], this.refresh, this);
     _models_dispatcher__WEBPACK_IMPORTED_MODULE_9__["mg_dispatcher"].on(_models_dispatcher__WEBPACK_IMPORTED_MODULE_9__["SELECT_ALL"], this.select_all, this);
@@ -25588,13 +25626,25 @@ class BrowseView extends backbone__WEBPACK_IMPORTED_MODULE_7__["View"] {
     let parent_id = this.browse.get('parent_id'),
         tagname;
     tagname = this._get_tagname_from_location();
+    this.browse.set({
+      'order_by': this.display_mode.get_order_by()
+    });
     this.open(parent_id, tagname);
   }
 
   render() {
-    let compiled, context, sort_order, sort_field;
+    let compiled,
+        context,
+        sort_order,
+        sort_field,
+        pagination_ctx = {};
     context = {};
-    this.pagination_view.render(this.browse.get('pagination'));
+    pagination_ctx = this.browse.get('pagination') || {}; // Pagination needs to know parent id i.e. id of the node
+    // which is parent of all currently displayed.
+    // That parent node id is rendered in urls.
+
+    pagination_ctx['parent_id'] = this.browse.get('parent_id');
+    this.pagination_view.render(pagination_ctx);
 
     if (this.display_mode.is_list()) {
       // desktop like selection was enabled.
@@ -25908,6 +25958,19 @@ class DisplayModeView extends backbone__WEBPACK_IMPORTED_MODULE_2__["View"] {
     this.display = GRID;
     this.set_local(DISPLAY_MODE, GRID);
     this.trigger('change');
+  }
+
+  get_order_by() {
+    /*
+    * Returens field name with or without dash
+    * character in front (dash character = minus character).
+    * Dash in front indicates 'descending order'.
+    */
+    if (this.sort_order == ASC) {
+      return this.sort_field;
+    }
+
+    return `-${this.sort_field}`;
   }
 
   render() {
@@ -26715,8 +26778,9 @@ class NewFolderView extends backbone__WEBPACK_IMPORTED_MODULE_4__["View"] {
     this.folder.set({
       'title': folder_title
     });
-    this.$el.modal('hide');
     this.folder.save({}, options);
+    this.$el.modal('hide');
+    this.undelegateEvents();
   }
 
   render() {
@@ -26836,7 +26900,12 @@ class PaginationView extends backbone__WEBPACK_IMPORTED_MODULE_2__["View"] {
   template(context = {}) {
     let compiled_tpl,
         ctx,
-        file_tpl = __webpack_require__(/*! ../templates/pagination.html */ "./src/js/templates/pagination.html");
+        file_tpl = __webpack_require__(/*! ../templates/pagination.html */ "./src/js/templates/pagination.html"),
+        parent_node = '';
+
+    if (context['parent_id']) {
+      parent_node = `#${context['parent_id']}`;
+    }
 
     ctx = {
       'page_number': context['page_number'] || 1,
@@ -26847,7 +26916,8 @@ class PaginationView extends backbone__WEBPACK_IMPORTED_MODULE_2__["View"] {
         'has_next': false,
         'previous_page_number': 1,
         'next_page_number': 1
-      }
+      },
+      'parent_node': parent_node
     };
     compiled_tpl = underscore__WEBPACK_IMPORTED_MODULE_1__["default"].template(file_tpl(ctx));
     return compiled_tpl();
@@ -27357,8 +27427,9 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var underscore__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! underscore */ "./node_modules/underscore/modules/index-all.js");
 /* harmony import */ var _models_tags__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../models/tags */ "./src/js/models/tags.js");
 /* harmony import */ var _models_automate__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(/*! ../models/automate */ "./src/js/models/automate.js");
-/* harmony import */ var backbone__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! backbone */ "./node_modules/backbone/backbone.js");
-/* harmony import */ var backbone__WEBPACK_IMPORTED_MODULE_4___default = /*#__PURE__*/__webpack_require__.n(backbone__WEBPACK_IMPORTED_MODULE_4__);
+/* harmony import */ var _utils__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(/*! ../utils */ "./src/js/utils.js");
+/* harmony import */ var backbone__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(/*! backbone */ "./node_modules/backbone/backbone.js");
+/* harmony import */ var backbone__WEBPACK_IMPORTED_MODULE_5___default = /*#__PURE__*/__webpack_require__.n(backbone__WEBPACK_IMPORTED_MODULE_5__);
 
 
 
@@ -27373,7 +27444,7 @@ let AV_TEMPLATE = __webpack_require__(/*! ../templates/av_tags.html */ "./src/js
 let AT_TEMPLATE = __webpack_require__(/*! ../templates/automate_tags.html */ "./src/js/templates/automate_tags.html");
 
 let ENTER_KEY = 13;
-class TagsView extends backbone__WEBPACK_IMPORTED_MODULE_4__["View"] {
+class TagsView extends backbone__WEBPACK_IMPORTED_MODULE_5__["View"] {
   el() {
     return jquery__WEBPACK_IMPORTED_MODULE_0___default()('.tags-container');
   }
@@ -27440,7 +27511,7 @@ class TagsView extends backbone__WEBPACK_IMPORTED_MODULE_4__["View"] {
     let value, model;
 
     if (event.which == ENTER_KEY || event.key == ',') {
-      value = jquery__WEBPACK_IMPORTED_MODULE_0___default()(event.target).val();
+      value = Object(_utils__WEBPACK_IMPORTED_MODULE_4__["sanitize"])(jquery__WEBPACK_IMPORTED_MODULE_0___default()(event.target).val());
 
       if (!underscore__WEBPACK_IMPORTED_MODULE_1__["default"].isEmpty(value)) {
         // whitespace is not a tag!
